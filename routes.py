@@ -33,7 +33,7 @@ def transcribe_audio():
     audio_file_path = f'uploads/{random_name}.mp3'
     audio_file.save(audio_file_path)
     print(request.form['audio_language'])
-    text = transcribe(request.form['audio_language'], audio_file_path)
+    text = utils_transcribe(request.form['audio_language'], audio_file_path)
     os.remove(audio_file_path)
     return jsonify({'success': True, 'text': text}), 200
 
@@ -54,7 +54,8 @@ def translate_text(text, pair_id):
 
 
 def summarize_text(source, target, text):
-    summarized_text = f"Summarized ({source} to {target}): {text}"  
+    summarized_text = utils_summarize(text, target)
+    # summarized_text = f"Summarized ({source} to {target}): {text}"  
     return summarized_text
 
 @app.route('/summarize', methods=['POST'])
@@ -62,7 +63,7 @@ def summarize():
     source_language = request.form['source_language']
     target_language = request.form['target_language']
     text = request.form['input_text']
-    print(text)
+    print('debug', text)
     if source_language == 'tt' and target_language != 'tt':
         translated_text = translate_text(text, 1) 
         summarized_text = summarize_text(source='ru', target=target_language, text=translated_text)

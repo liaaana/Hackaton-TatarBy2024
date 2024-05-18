@@ -6,10 +6,12 @@ from typing import Iterator, TextIO
 from googletrans import Translator
 import re
 
-def split_into_parts_of_four(input_list):
+from transformers import AutoTokenizer, AutoModelWithLMHead
+
+def utils_split_into_parts_of_four(input_list):
     return [input_list[i:i + 4] for i in range(0, len(input_list), 4)]
 
-def combine_srt(input_file, output_file, target_language):
+def utils_combine_srt(input_file, output_file, target_language):
     with open(input_file, 'r', encoding='utf-8') as file:
         srt_content = file.readlines()
 
@@ -22,7 +24,7 @@ def combine_srt(input_file, output_file, target_language):
 
     sentences = []
 
-    parts = split_into_parts_of_four(translated_content)
+    parts = utils_split_into_parts_of_four(translated_content)
 
     cur_beg = None
     cur_end = None
@@ -46,7 +48,7 @@ def combine_srt(input_file, output_file, target_language):
     with open(output_file, 'w', encoding='utf-8') as file:
         file.writelines(sentences)
 
-def translate_srt(input_file, output_file, target_language):
+def utils_translate_srt(input_file, output_file, target_language):
     # Initialize the translator
     translator = Translator()
 
@@ -68,7 +70,7 @@ def translate_srt(input_file, output_file, target_language):
     with open(output_file, 'w', encoding='utf-8') as file:
         file.writelines(translated_content)
 
-def srt_format_timestamp(seconds: float):
+def utils_srt_format_timestamp(seconds: float):
     assert seconds >= 0, "non-negative timestamp expected"
     milliseconds = round(seconds * 1000.0)
 
@@ -81,20 +83,19 @@ def srt_format_timestamp(seconds: float):
     return (f"{hours}:") + f"{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
 
-def write_srt(transcript: Iterator[dict], file: TextIO):
+def utils_write_srt(transcript: Iterator[dict], file: TextIO):
     count = 0
     for segment in transcript:
         count +=1
         print(
             f"{count}\n"
-            f"{srt_format_timestamp(segment['timestamp'][0])} --> {srt_format_timestamp(segment['timestamp'][1])}\n"
+            f"{utils_srt_format_timestamp(segment['timestamp'][0])} --> {utils_srt_format_timestamp(segment['timestamp'][1])}\n"
             f"{segment['text'].replace('-->', '->').strip()}\n",
             file=file,
             flush=True,
         )
 
-
-def subtitles(source_language, target_language, audio, timestamps='sentence'):
+def utils_subtitles(source_language, target_language, audio, timestamps='sentence'):
     os.system('huggingface-cli login --token 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 --add-to-git-credential')
 
     model = 'openai/whisper-large-v3'
@@ -115,25 +116,28 @@ def subtitles(source_language, target_language, audio, timestamps='sentence'):
 
     result = pipe(audio)
 
-    initial_filename = 'init.srt'
-    final_filename = 'subtitles.srt'
+    os.makedirs('subtitles', exist_ok=True)
+
+    initial_filename = 'subtitles/init.srt'
+    final_filename = 'subtitles/subtitles.srt'
 
     with open(initial_filename, 'w') as f:
-        write_srt(result['chunks'], f)
+        utils_write_srt(result['chunks'], f)
 
-    combine_srt(initial_filename, initial_filename, target_language)
+    utils_combine_srt(initial_filename, initial_filename, target_language)
 
     # translate_srt(initial_filename, final_filename, target_language)
     os.system(f'translatesubs {initial_filename} {final_filename} --to_lang {target_language}')
 
     del model
     del pipe
-    gc.collect()
+    for i in range(3):
+        gc.collect()
 
-    return os.path.abspath(final_filename), result
+    return os.path.abspath(final_filename)
 
 
-def transcribe(source_language, audio, timestamps='sentence'):
+def utils_transcribe(source_language, audio, timestamps='sentence'):
     os.system('huggingface-cli login --token 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 --add-to-git-credential')
 
     model = 'openai/whisper-large-v3'
@@ -156,6 +160,33 @@ def transcribe(source_language, audio, timestamps='sentence'):
 
     del model
     del pipe
-    gc.collect()
+    for i in range(3):
+        gc.collect()
 
     return result['text']
+
+
+def utils_summarize(text, target_language):
+    translator = Translator()
+    text_en = translator.translate(text.strip(), dest='en').text
+
+    tokenizer = AutoTokenizer.from_pretrained('T5-base')
+    model = AutoModelWithLMHead.from_pretrained('T5-base', return_dict=True)
+
+    inputs = tokenizer.encode("summarize: " + text_en, return_tensors='pt', max_length=2048, truncation=True)
+    output = model.generate(inputs, min_length=len(text.split()) // 2, max_length=len(text.split()))
+
+    del model
+    for i in range(3):
+        gc.collect()
+
+    summary = tokenizer.decode(output[0], skip_special_tokens=True)
+
+    try:
+        return translator.translate(summary.strip(), dest=target_language).text
+    except:
+        return translator.translate(summary.strip(), dest='ru').text
+
+
+def add_subtitles(subtitles_file, input_file, target_file):
+    os.system(f'ffmpeg -i {input_file} -vf subtitles={subtitles_file} {target_file} -y')
