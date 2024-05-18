@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}<title>Транскрибация</title>{% endblock %}
+{% block content %}
+<div class="bg-gray-100 min-h-screen flex flex-col mt-8">
+  <section class="py-8">
+    <div class="container mx-auto text-center">
+      <h1 class="text-4xl font-bold text-gray-800 mb-4 mx-2">Преобразование аудио в текст</h1>
+      <p class="text-xl text-gray-600 mb-4 mx-2">Загрузите аудиофайл длительностью до 5 минут, чтобы преобразовать его в текст.</p>
+    </div>
+  </section>
+  
+  <section class="bg-gray-100 w-full">
+    <div class="container mx-auto flex flex-col md:flex-row justify-between">
+      <div class="md:flex-1 text-center md:mr-4 md:ml-4 mb-4 md:mb-0">
+        <div class="mb-8">
+          <input type="file" id="audio-file-input" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg" accept="audio/mp3" required onchange="validateAudioDuration(this)">
+          <div class="mt-4 mb-4 md:mr-4 md:ml-4 md:mb-0">
+            <label for="audio-language" class="block text-gray-700 text-sm font-bold mb-2 mt-4 md:mt-0">Язык аудио:</label>
+            <select name="audio_language" id="audio-language" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg" required>
+              <option value="" disabled selected>Выберите язык</option>
+              <option value="af">Afrikaans</option>
+              <option value="ar">Arabic</option>
+              <option value="hy">Armenian</option>
+              <option value="az">Azerbaijani</option>
+              <option value="be">Belarusian</option>
+              <option value="bs">Bosnian</option>
+              <option value="bg">Bulgarian</option>
+              <option value="ca">Catalan</option>
+              <option value="zh">Chinese</option>
+              <option value="hr">Croatian</option>
+              <option value="cs">Czech</option>
+              <option value="da">Danish</option>
+              <option value="nl">Dutch</option>
+              <option value="en">English</option>
+              <option value="et">Estonian</option>
+              <option value="fi">Finnish</option>
+              <option value="fr">French</option>
+              <option value="gl">Galician</option>
+              <option value="de">German</option>
+              <option value="el">Greek</option>
+              <option value="he">Hebrew</option>
+              <option value="hi">Hindi</option>
+              <option value="hu">Hungarian</option>
+              <option value="is">Icelandic</option>
+              <option value="id">Indonesian</option>
+              <option value="it">Italian</option>
+              <option value="ja">Japanese</option>
+              <option value="kn">Kannada</option>
+              <option value="kk">Kazakh</option>
+              <option value="ko">Korean</option>
+              <option value="lv">Latvian</option>
+              <option value="lt">Lithuanian</option>
+              <option value="mk">Macedonian</option>
+              <option value="ms">Malay</option>
+              <option value="mr">Marathi</option>
+              <option value="mi">Maori</option>
+              <option value="ne">Nepali</option>
+              <option value="no">Norwegian</option>
+              <option value="fa">Persian</option>
+              <option value="pl">Polish</option>
+              <option value="pt">Portuguese</option>
+              <option value="ro">Romanian</option>
+              <option value="ru">Russian</option>
+              <option value="sr">Serbian</option>
+              <option value="sk">Slovak</option>
+              <option value="sl">Slovenian</option>
+              <option value="es">Spanish</option>
+              <option value="sw">Swahili</option>
+              <option value="sv">Swedish</option>
+              <option value="tl">Tagalog</option>
+              <option value="ta">Tamil</option>
+              <option value="tt" selected>Tatar</option>
+              <option value="th">Thai</option>
+              <option value="tr">Turkish</option>
+              <option value="uk">Ukrainian</option>
+              <option value="ur">Urdu</option>
+              <option value="vi">Vietnamese</option>
+              <option value="cy">Welsh</option>
+            </select>
+          </div>
+          <button id="upload-btn" class="bg-green-800 text-white px-6 py-3 rounded-lg m-4">Загрузить</button>
+        </div>
+      </div>
+      <div class="bg-green-800 p-4 rounded-lg flex-2 w-4/5 ml-8 mr-8">
+        <h2 class="text-2xl font-bold text-white mb-4">Результат</h2>
+        <textarea id="transcribed-text" class="w-full h-64 p-4 text-gray-600 rounded-lg readonly">Здесь появится ваш текст...</textarea>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  function validateAudioDuration(input) {
+    const audio = input.files[0];
+    const audioObject = document.createElement('audio');
+
+    audioObject.onloadedmetadata = function() {
+        const duration = audioObject.duration;
+        const maxDuration = 5 * 60; 
+
+        if (duration > maxDuration) {
+            alert('Пожалуйста, выберите аудио длительностью не более 5 минут.');
+            input.value = ''; 
+        } 
+    };
+
+    audioObject.src = URL.createObjectURL(audio);
+  }
+
+  document.getElementById('upload-btn').addEventListener('click', async () => {
+    const input = document.getElementById('audio-file-input');
+    if (input.files.length === 0) {
+      alert('Пожалуйста, выберите аудиофайл.');
+      return;
+    }
+    
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('audio', file);
+
+    const languageSelect = document.getElementById('audio-language');
+    const selectedLanguage = languageSelect.options[languageSelect.selectedIndex].value;
+    formData.append('audio_language', selectedLanguage);
+
+    const response = await fetch('/transcription_audio', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+    document.getElementById('transcribed-text').value = result.text || 'Ошибка при распознавании текста.';
+  });
+</script>
+{% endblock %}

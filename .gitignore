@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python-specific
+*.swp
+*.swo
+*.egg-info/
+
+# Virtual environment
+venv/
+env/
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Node.js
+node_modules/
+package-lock.json
+package.json
+
+# Tailwind CSS configuration
+tailwind.config.js
