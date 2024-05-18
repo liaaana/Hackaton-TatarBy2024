@@ -1,7 +1,6 @@
 import json
 from flask import Flask, request, jsonify
 import os
-import numpy as np
 from flask import Response, render_template, request, redirect, url_for, flash
 from flask import render_template, request
 from app import app
@@ -10,7 +9,6 @@ import secrets
 from utils import * 
 import pysrt
 from datetime import datetime as dt
-import requests
 import requests
 import xml.etree.ElementTree as ET
 import nltk
@@ -55,7 +53,6 @@ def translate_text(text, pair_id):
 
 def summarize_text(source, target, text):
     summarized_text = utils_summarize(text, target)
-    # summarized_text = f"Summarized ({source} to {target}): {text}"  
     return summarized_text
 
 @app.route('/summarize', methods=['POST'])
