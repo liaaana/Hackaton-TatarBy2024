@@ -70,7 +70,7 @@ def utils_translate_srt(input_file, output_file, target_language):
     with open(output_file, 'w', encoding='utf-8') as file:
         file.writelines(translated_content)
 
-def utils_srt_format_timestamp(seconds: float):
+def srt_format_timestamp(seconds: float):
     assert seconds >= 0, "non-negative timestamp expected"
     milliseconds = round(seconds * 1000.0)
 
@@ -89,13 +89,13 @@ def utils_write_srt(transcript: Iterator[dict], file: TextIO):
         count +=1
         print(
             f"{count}\n"
-            f"{utils_srt_format_timestamp(segment['timestamp'][0])} --> {utils_srt_format_timestamp(segment['timestamp'][1])}\n"
+            f"{srt_format_timestamp(segment['timestamp'][0])} --> {srt_format_timestamp(segment['timestamp'][1])}\n"
             f"{segment['text'].replace('-->', '->').strip()}\n",
             file=file,
             flush=True,
         )
 
-def utils_subtitles(source_language, target_language, audio, timestamps='sentence'):
+def utils_subtitles(source_language, target_language, audio, final_filename, timestamps='sentence'):
     os.system('huggingface-cli login --token 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 --add-to-git-credential')
 
     model = 'openai/whisper-large-v3'
@@ -106,12 +106,12 @@ def utils_subtitles(source_language, target_language, audio, timestamps='sentenc
         pipe = pipeline(
             model=model,
             device='cuda',
-            return_timestamps=timestamps
+            return_timestamps=timestamps,
         )
     except:
         pipe = pipeline(
             model=model,
-            return_timestamps=timestamps
+            return_timestamps=timestamps,
         )
 
     result = pipe(audio)
@@ -119,7 +119,6 @@ def utils_subtitles(source_language, target_language, audio, timestamps='sentenc
     os.makedirs('subtitles', exist_ok=True)
 
     initial_filename = 'subtitles/init.srt'
-    final_filename = 'subtitles/subtitles.srt'
 
     with open(initial_filename, 'w') as f:
         utils_write_srt(result['chunks'], f)
@@ -173,10 +172,11 @@ def utils_summarize(text, target_language):
     tokenizer = AutoTokenizer.from_pretrained('T5-base')
     model = AutoModelWithLMHead.from_pretrained('T5-base', return_dict=True)
 
-    inputs = tokenizer.encode("summarize: " + text_en, return_tensors='pt', max_length=2048, truncation=True)
-    output = model.generate(inputs, min_length=len(text.split()) // 2, max_length=len(text.split()))
+    inputs = tokenizer.encode("sumarize: " + text_en, return_tensors='pt', max_length=512, truncation=True)
+    output = model.generate(inputs, min_length=len(text.split()) // 3, max_length=len(text.split()))
 
     del model
+    del pipe
     for i in range(3):
         gc.collect()
 
@@ -188,5 +188,5 @@ def utils_summarize(text, target_language):
         return translator.translate(summary.strip(), dest='ru').text
 
 
-def add_subtitles(subtitles_file, input_file, target_file):
+def utils_add_subtitles(subtitles_file, input_file, target_file):
     os.system(f'ffmpeg -i {input_file} -vf subtitles={subtitles_file} {target_file} -y')

@@ -45,3 +45,4 @@ tzdata==2023.3
 Werkzeug==2.3.7
 wsproto==1.2.0
 WTForms==3.0.1
+transformers==4.40.2

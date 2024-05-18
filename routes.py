@@ -85,7 +85,13 @@ def upload_video():
     video_file.save(video_file_path)
 
     subtitles_path = f'subtitles/tatar.srt'
-    # TODO: video subtitles
+    video_language = request.form["video_language"]
+    subtitles_language = request.form["subtitles_language"]
+
+    print(video_language, subtitles_language, video_file_path, subtitles_path,  'word')
+
+    # subtitles_path = utils_subtitles(video_language, subtitles_language, video_file_path, subtitles_path, timestamps='word')
+
     subs = pysrt.open(subtitles_path)
     subtitles = []
     for sub in subs:
@@ -120,29 +126,7 @@ def generate_subtitles():
     with open(subtitles_path, 'w', encoding='utf-8') as f:
         f.write(srt_text)
 
-    # os.remove(video_path)
-    # os.remove(subtitles_path)
-
-    # try:
-    #     os.environ["IMAGEIO_FFMPEG_EXE"]  = "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/ffmpeg"
-    #     video_file = request.files['video']
-    #     # subtitles_file = request.files['subtitles']
-    #     random_name = secrets.token_hex(8)
-    #     video_path = f'uploads/{random_name}.mp4'
-    #     # subtitles_path = f'uploads/{random_name}.srt'
-    #     subtitles_path = f'subtitiles/tatar.srt'
-    #     output_path = f'uploads/{random_name}_output.mp4'
-    #     video_file.save(video_path)
-    #     # subtitles_file.save(subtitles_path)
-    #     cmd = f'ffmpeg -i {video_path} -vf "subtitles={subtitles_path} {output_path}'
-    #     # subprocess.run(cmd, shell=True)
-    #     os.system(cmd)
-    #     os.remove(video_path)
-    #     os.remove(subtitles_path)
-
-    #     return jsonify({"success": True, "output_file": output_path})
-
-    # except Exception as e:
+    
     return jsonify({"success": False, "error": str(212)})
 
 
