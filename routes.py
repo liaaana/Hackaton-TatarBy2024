@@ -88,9 +88,7 @@ def upload_video():
     video_language = request.form["video_language"]
     subtitles_language = request.form["subtitles_language"]
 
-    print(video_language, subtitles_language, video_file_path, subtitles_path,  'word')
-
-    # subtitles_path = utils_subtitles(video_language, subtitles_language, video_file_path, subtitles_path, timestamps='word')
+    subtitles_path = utils_subtitles(video_language, subtitles_language, video_file_path, subtitles_path, timestamps='word')
 
     subs = pysrt.open(subtitles_path)
     subtitles = []
