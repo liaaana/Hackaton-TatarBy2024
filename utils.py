@@ -8,10 +8,12 @@ import re
 
 from transformers import AutoTokenizer, AutoModelWithLMHead
 
+
 def utils_split_into_parts_of_four(input_list):
     return [input_list[i:i + 4] for i in range(0, len(input_list), 4)]
 
-def utils_combine_srt(input_file, output_file, target_language):
+
+def utils_combine_srt(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as file:
         srt_content = file.readlines()
 
@@ -48,27 +50,6 @@ def utils_combine_srt(input_file, output_file, target_language):
     with open(output_file, 'w', encoding='utf-8') as file:
         file.writelines(sentences)
 
-def utils_translate_srt(input_file, output_file, target_language):
-    # Initialize the translator
-    translator = Translator()
-
-    with open(input_file, 'r', encoding='utf-8') as file:
-        srt_content = file.readlines()
-
-    translated_content = []
-    for line in srt_content:
-        # Check if the line is a subtitle text line
-        if re.match(r'^\d{1,3}$', line.strip()) or re.match(r'^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$', line.strip()) or line.strip() == '':
-            # Append unchanged line (index or timestamp or blank)
-            translated_content.append(line)
-        else:
-            # Translate the subtitle text
-            translated_line = translator.translate(line.strip(), dest=target_language).text
-            translated_content.append(translated_line + '\n')
-
-    # Write the translated content to a new .srt file
-    with open(output_file, 'w', encoding='utf-8') as file:
-        file.writelines(translated_content)
 
 def srt_format_timestamp(seconds: float):
     assert seconds >= 0, "non-negative timestamp expected"
@@ -80,6 +61,7 @@ def srt_format_timestamp(seconds: float):
     milliseconds -= minutes * 60_000
     seconds = milliseconds // 1_000
     milliseconds -= seconds * 1_000
+
     return (f"{hours}:") + f"{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
 
@@ -95,7 +77,8 @@ def utils_write_srt(transcript: Iterator[dict], file: TextIO):
             flush=True,
         )
 
-def utils_subtitles(source_language, target_language, audio, final_filename, timestamps='sentence'):
+
+def utils_subtitles(source_language, target_language, audio, final_filename, timestamps='word'):
     os.system('huggingface-cli login --token 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 --add-to-git-credential')
 
     model = 'openai/whisper-large-v3'
@@ -125,12 +108,11 @@ def utils_subtitles(source_language, target_language, audio, final_filename, tim
 
     utils_combine_srt(initial_filename, initial_filename, target_language)
 
-    # translate_srt(initial_filename, final_filename, target_language)
     os.system(f'translatesubs {initial_filename} {final_filename} --to_lang {target_language}')
 
     del model
     del pipe
-    for i in range(3):
+    for _ in range(3):
         gc.collect()
 
     return os.path.abspath(final_filename)
@@ -159,7 +141,7 @@ def utils_transcribe(source_language, audio, timestamps='sentence'):
 
     del model
     del pipe
-    for i in range(3):
+    for _ in range(3):
         gc.collect()
 
     return result['text']
