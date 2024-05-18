@@ -88,6 +88,7 @@ def upload_video():
     video_language = request.form["video_language"]
     subtitles_language = request.form["subtitles_language"]
 
+    # TODO: if subtitles_language == 'tt': change it to 'ru' and then somehow translate the file
     subtitles_path = utils_subtitles(video_language, subtitles_language, video_file_path, subtitles_path, timestamps='word')
 
     subs = pysrt.open(subtitles_path)

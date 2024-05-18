@@ -79,7 +79,8 @@ def utils_write_srt(transcript: Iterator[dict], file: TextIO):
 
 
 def utils_subtitles(source_language, target_language, audio, final_filename, timestamps='word'):
-    model = 'openai/whisper-large-v3'
+    # model = 'openai/whisper-large-v3'
+    model = 'openai/whisper-small'
     if source_language == 'tt':
         model = 'mcronomus/whisper-small-tt'
 
@@ -92,7 +93,7 @@ def utils_subtitles(source_language, target_language, audio, final_filename, tim
     except:
         pipe = pipeline(
             model=model,
-            return_timestamps=timestamps,
+            return_timestamps=timestamps
         )
 
     result = pipe(audio)
@@ -104,7 +105,7 @@ def utils_subtitles(source_language, target_language, audio, final_filename, tim
     with open(initial_filename, 'w') as f:
         utils_write_srt(result['chunks'], f)
 
-    utils_combine_srt(initial_filename, initial_filename, target_language)
+    utils_combine_srt(initial_filename, initial_filename)
 
     os.system(f'translatesubs {initial_filename} {final_filename} --to_lang {target_language}')
 
