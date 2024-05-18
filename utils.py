@@ -79,8 +79,6 @@ def utils_write_srt(transcript: Iterator[dict], file: TextIO):
 
 
 def utils_subtitles(source_language, target_language, audio, final_filename, timestamps='word'):
-    os.system('huggingface-cli login --token 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 --add-to-git-credential')
-
     model = 'openai/whisper-large-v3'
     if source_language == 'tt':
         model = 'mcronomus/whisper-small-tt'
@@ -119,8 +117,6 @@ def utils_subtitles(source_language, target_language, audio, final_filename, tim
 
 
 def utils_transcribe(source_language, audio, timestamps='sentence'):
-    os.system('huggingface-cli login --token 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 --add-to-git-credential')
-
     model = 'openai/whisper-large-v3'
     if source_language == 'tt':
         model = 'mcronomus/whisper-small-tt'
