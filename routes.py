@@ -1,5 +1,5 @@
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import os
 from flask import Response, render_template, request, redirect, url_for, flash
 from flask import render_template, request
@@ -22,18 +22,26 @@ def index():
     return render_template("index.html")
 
 
-@app.route('/transcription_audio', methods=['POST'])
-def transcribe_audio():
-    if 'audio' not in request.files:
-        return jsonify({'error': 'Нет файла для обработки'}), 400
-    random_name = secrets.token_hex(8)
-    audio_file = request.files['audio']
-    audio_file_path = f'uploads/{random_name}.mp3'
-    audio_file.save(audio_file_path)
-    print(request.form['audio_language'])
-    text = utils_transcribe(request.form['audio_language'], audio_file_path)
-    os.remove(audio_file_path)
-    return jsonify({'success': True, 'text': text}), 200
+def translate_srt(input_file, output_file):
+    with open(input_file, 'r', encoding='utf-8') as file:
+        srt_content = file.readlines()
+
+    translated_content = []
+    for line in srt_content:
+        if re.match(r'^\d{1,3}$', line.strip()) or re.match(r'^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$', line.strip()) or line.strip() == '':
+            translated_content.append(line)
+        else:
+            translated_content.append(line.strip() + '\n')
+
+    parts = utils_split_into_parts_of_four(translated_content)
+
+    sentences = []
+    for part in parts:
+        translation = translate_text(part[2].strip(), 0)
+        sentences.append(f'{part[0]}{part[1]}{translation}\n\n')
+
+    with open(output_file, 'w', encoding='utf-8') as file:
+        file.writelines(sentences)
 
 def translate_text(text, pair_id):
     sentences = sent_tokenize(text)
@@ -75,6 +83,20 @@ def summarize():
         summarized_text = summarize_text(source=source_language, target=target_language, text=text)
     return jsonify({'text': summarized_text})
 
+
+@app.route('/transcription_audio', methods=['POST'])
+def transcribe_audio():
+    if 'audio' not in request.files:
+        return jsonify({'error': 'Нет файла для обработки'}), 400
+    random_name = secrets.token_hex(8)
+    audio_file = request.files['audio']
+    audio_file_path = f'uploads/{random_name}.mp3'
+    audio_file.save(audio_file_path)
+    print(request.form['audio_language'])
+    text = utils_transcribe(request.form['audio_language'], audio_file_path)
+    os.remove(audio_file_path)
+    return jsonify({'success': True, 'text': text}), 200
+
 @app.route('/subtitles_video', methods=['POST'])
 def upload_video():
     if 'video' not in request.files:
@@ -88,8 +110,11 @@ def upload_video():
     video_language = request.form["video_language"]
     subtitles_language = request.form["subtitles_language"]
 
-    # TODO: if subtitles_language == 'tt': change it to 'ru' and then somehow translate the file
-    subtitles_path = utils_subtitles(video_language, subtitles_language, video_file_path, subtitles_path, timestamps='word')
+    if subtitles_language == 'tt':
+        subtitles_path = utils_subtitles(video_language, 'ru', video_file_path, subtitles_path, timestamps='word')
+        translate_srt(subtitles_path, subtitles_path)
+    else:
+        subtitles_path = utils_subtitles(video_language, subtitles_language, video_file_path, subtitles_path, timestamps='word')
 
     subs = pysrt.open(subtitles_path)
     subtitles = []
@@ -125,8 +150,18 @@ def generate_subtitles():
     with open(subtitles_path, 'w', encoding='utf-8') as f:
         f.write(srt_text)
 
-    
-    return jsonify({"success": False, "error": str(212)})
+    ouput_video_path = f'{video_path[:-4]}_output.mp4'
+    ouput_video_path = utils_add_subtitles(subtitles_path, video_path, ouput_video_path)
+    if ouput_video_path and os.path.exists(ouput_video_path):
+        os.remove(subtitles_path)
+        return jsonify({"success": True, "output_video_path": ouput_video_path})
+    else:
+        os.remove(subtitles_path)
+        return jsonify({"success": False}), 404
+
+@app.route('/download/<path:filename>', methods=['GET', 'POST'])
+def download(filename):
+    return send_file(filename, as_attachment=True)
 
 
 @app.route("/summary")

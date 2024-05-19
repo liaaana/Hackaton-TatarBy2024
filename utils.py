@@ -155,7 +155,6 @@ def utils_summarize(text, target_language):
     output = model.generate(inputs, min_length=len(text.split()) // 3, max_length=len(text.split()))
 
     del model
-    del pipe
     for i in range(3):
         gc.collect()
 
@@ -169,3 +168,4 @@ def utils_summarize(text, target_language):
 
 def utils_add_subtitles(subtitles_file, input_file, target_file):
     os.system(f'ffmpeg -i {input_file} -vf subtitles={subtitles_file} {target_file} -y')
+    return target_file

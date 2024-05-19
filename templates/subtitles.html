@@ -81,7 +81,6 @@
                 <option value="ur">Urdu</option>
                 <option value="vi">Vietnamese</option>
                 <option value="cy">Welsh</option>
-                </select>
               </select>
             </div>
             <div class="mb-4 md:mr-4 md:ml-4 md:mb-0 w-full">
@@ -146,7 +145,6 @@
                 <option value="ur">Urdu</option>
                 <option value="vi">Vietnamese</option>
                 <option value="cy">Welsh</option>
-                </select>
               </select>
             </div>
           </div>
@@ -161,14 +159,15 @@
       <h2 class="text-2xl font-bold text-gray-800 mb-4">Редактирование субтитров</h2>
       <div id="subtitles-container" class="mb-8">
       </div>
-      <div class="flex flex-row  mb-4">
-        <button type="button" id="prev-page" class="bg-gray-500 text-white px-4 py-2 rounded-lg">Назад</button>
-        <span id="page-info" class="text-gray-700 mx-2"></span>
-        <button type="button" id="next-page" class="bg-gray-500 text-white px-4 py-2 rounded-lg">Вперёд</button>
+      <div class="flex flex-row mb-4">
+        <button type="button" id="prev-page" class="bg-green-600 text-white px-4 py-2 rounded-lg">Назад</button>
+        <span id="page-info" class="text-gray-700 mx-2 mt-2"></span>
+        <button type="button" id="next-page" class="bg-green-600 text-white px-4 py-2 rounded-lg">Вперёд</button>
       </div>
     </div>
-    <div class="container mx-auto px-4">
+    <div class="container mx-auto px-4 ">
       <button type="button" id="save-subtitles" class="bg-green-800 text-white px-6 py-3 rounded-lg mt-4">Сохранить субтитры</button>
+      <div id="download-container" class="mt-4"></div>
     </div>
   </section>
 </div>
@@ -211,6 +210,7 @@
       video_path = result.video_path;
       subtitles_path = result.subtitles_path;
       renderSubtitles();
+      updatePageInfo();
     } else {
       alert('Ошибка при загрузке видео.');
     }
@@ -232,11 +232,16 @@
     subtitlesContainer.innerHTML = '';
     currentSubtitles.forEach(subtitle => {
       const subtitleElement = document.createElement('div');
+      subtitleElement.className = "mb-4 flex flex-col items-start"; 
 
       const timeSpan = document.createElement('span');
+      timeSpan.className = "block text-gray-600 font-semibold mb-2"; 
       timeSpan.textContent = `${subtitle.start_time} - ${subtitle.end_time}: `;
+      
       const textArea = document.createElement('textarea');
+      textArea.className = "w-full p-2 rounded-lg border border-gray-300 resize-none"; 
       textArea.value = subtitle.text;
+      textArea.rows = 3; 
 
       textArea.addEventListener('input', () => {
         subtitle.text = textArea.value;
@@ -266,31 +271,34 @@
   });
 
   document.getElementById('save-subtitles').addEventListener('click', async () => {
-    const videoFileInput = document.getElementById('video-file-input');
-    if (!videoFileInput.files.length) {
-      alert('Пожалуйста, загрузите видеофайл.');
-      return;
-    }
+  const videoFileInput = document.getElementById('video-file-input');
 
-    const videoFile = videoFileInput.files[0];
-    const formData = new FormData();
-    formData.append('video', videoFile);
-    formData.append('subtitles', JSON.stringify(subtitles));
-    formData.append('video_path', video_path);
-    formData.append('subtitles_path', subtitles_path);
+  const videoFile = videoFileInput.files[0];
+  const formData = new FormData();
+  formData.append('video', videoFile);
+  formData.append('subtitles', JSON.stringify(subtitles));
+  formData.append('video_path', video_path);
+  formData.append('subtitles_path', subtitles_path);
 
-    const response = await fetch('/generate_subtitles', {
-      method: 'POST',
-      body: formData,
-    });
-
-    const result = await response.json();
-    if (result.success) {
-      alert('Субтитры успешно сохранены и добавлены на видео.');
-    } else {
-      alert('Ошибка при сохранении субтитров.');
-    }
+  const response = await fetch('/generate_subtitles', {
+    method: 'POST',
+    body: formData,
   });
+
+  const result = await response.json();
+  if (result.success) {
+    const downloadLink = document.createElement('a');
+    downloadLink.href = `/download/${encodeURIComponent(result.output_video_path)}`;
+    downloadLink.textContent = 'Скачать видео'; 
+    downloadLink.download = 'output_video.mp4'; 
+    const container = document.getElementById('download-container');
+    container.innerHTML = ''; 
+    container.appendChild(downloadLink); 
+  } else {
+    alert('Ошибка при сохранении субтитров.');
+  }
+  });
+
 
   const updatePageInfo = () => {
     const pageInfo = document.getElementById('page-info');
